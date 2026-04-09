@@ -69,7 +69,10 @@ class RealSenseSensing(SensingSource):
     def start(self) -> None:
         self._camera.start()
         self._detector.start()
-        self._converter = DepthKeypointConverter(self._camera.intrinsics)
+        # MANO transform applied inside DepthKeypointConverter (required by dex-retargeting)
+        self._converter = DepthKeypointConverter(
+            self._camera.intrinsics, hand_type=self._hand_side,
+        )
         self._start_time_ms = int(time.monotonic() * 1000)
         self._running = True
         self._thread = threading.Thread(target=self._detect_loop, daemon=True)

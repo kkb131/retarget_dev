@@ -41,6 +41,7 @@ python3 -m retarget_dev.models.dex_retarget.play_pkl \
 | [usage.md](usage.md) | Allegro/DG-5F 실행법, ROS2 토픽 구조, joint name 매핑 |
 | [dg5f_tuning.md](dg5f_tuning.md) | DG-5F 튜닝 경험 (scaling, vector vs DexPilot, URDF 수정) |
 | [phone_realtime.md](phone_realtime.md) | Phone (IP Webcam) → 실시간 DG-5F, MANO 변환 파이프라인 |
+| [realsense_d405.md](realsense_d405.md) | RealSense D405 → 실시간 DG-5F, real depth 기반 정밀 제어 |
 
 ## 파일 구조
 

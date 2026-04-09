@@ -143,6 +143,12 @@ python3 -m retarget_dev.models.dex_retarget.main \
   --config retarget_dev/models/dex_retarget/config/dg5f_right_dexpilot.yml \
   --url http://192.168.0.3:8080/video
 
+# RealSense D405 — 자세한 내용은 realsense_d405.md
+python3 -m retarget_dev.models.dex_retarget.main \
+  --sensing realsense \
+  --config retarget_dev/models/dex_retarget/config/dg5f_right_dexpilot.yml \
+  --topic /dg5f_right/joint_commands --hz 30
+
 # Manus ROS2
 python3 -m retarget_dev.models.dex_retarget.main \
   --sensing manus-ros2 \

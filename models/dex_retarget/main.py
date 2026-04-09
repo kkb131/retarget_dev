@@ -43,8 +43,12 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--sensing", required=True,
-        choices=["manus-mock", "manus-ros2", "manus-sdk", "phone"],
+        choices=["manus-mock", "manus-ros2", "manus-sdk", "phone", "realsense"],
         help="Sensing source.",
+    )
+    p.add_argument(
+        "--rs-serial", default=None,
+        help="RealSense camera serial number (for --sensing realsense).",
     )
     p.add_argument(
         "--config", required=True,
@@ -82,6 +86,10 @@ def create_sensing(args):
     elif args.sensing == "phone":
         from retarget_dev.sensing.phone.phone_sensing import PhoneSensing
         return PhoneSensing(camera_url=args.url, hand_side=args.hand)
+
+    elif args.sensing == "realsense":
+        from retarget_dev.sensing.realsense.realsense_sensing import RealSenseSensing
+        return RealSenseSensing(serial=args.rs_serial, hand_side=args.hand)
 
     raise ValueError(f"Unknown sensing: {args.sensing}")
 

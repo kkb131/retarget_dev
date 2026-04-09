@@ -1,31 +1,55 @@
-"""Convert MediaPipe 2D landmarks + RealSense depth → true 3D keypoints.
+"""Convert MediaPipe 2D landmarks + RealSense depth → MANO-frame 3D keypoints.
 
 Unlike the phone module's KeypointConverter (which uses MediaPipe's estimated
-world_landmarks z-coordinate), this module uses real depth from the D405 sensor
-and rs2_deproject_pixel_to_point for accurate 3D positions.
+world_landmarks z-coordinate), this module uses **real depth** from the D405
+sensor and ``rs2_deproject_pixel_to_point`` for accurate 3D positions.
 
-Output: np.ndarray shape (21, 3), float32, meters, wrist = [0, 0, 0].
+After computing xyz from depth, the same **MANO transform** as the phone
+module is applied (via :mod:`sensing.core.mano_transform`) so the output is
+directly compatible with dex-retargeting's optimizers.
+
+Output: np.ndarray shape (21, 3), float32, meters, wrist = [0, 0, 0],
+        aligned to MANO convention.
 """
 
 import numpy as np
 
 from retarget_dev.sensing.core.hand_detector import HandDetection
+from retarget_dev.sensing.core.mano_transform import apply_mano_transform
 from retarget_dev.sensing.realsense.config import DEPTH_MAX_M, DEPTH_MIN_M, DEPTH_SEARCH_RADIUS
 
 
 class DepthKeypointConverter:
-    """Convert MediaPipe 2D landmarks + depth frame → wrist-frame 3D keypoints."""
+    """Convert MediaPipe 2D landmarks + depth frame → MANO-frame 3D keypoints.
+
+    Parameters
+    ----------
+    intrinsics : pyrealsense2.intrinsics
+        Intrinsics from the color stream (aligned).
+    hand_type : str
+        "right" or "left" — determines MANO operator2mano rotation.
+    search_radius : int
+        Pixel radius for depth neighborhood sampling (median filter).
+    apply_mano : bool
+        If True (default), apply MANO transform after 3D reconstruction.
+    """
 
     WRIST_INDEX = 0
 
-    def __init__(self, intrinsics, search_radius: int = DEPTH_SEARCH_RADIUS):
-        """
-        Args:
-            intrinsics: pyrealsense2.intrinsics from the color stream.
-            search_radius: Pixel radius for depth neighborhood sampling.
-        """
+    def __init__(
+        self,
+        intrinsics,
+        hand_type: str = "right",
+        search_radius: int = DEPTH_SEARCH_RADIUS,
+        apply_mano: bool = True,
+    ):
         self._intrinsics = intrinsics
         self._radius = search_radius
+        self._hand_type = hand_type.lower()
+        self._apply_mano = apply_mano
+
+        if self._hand_type not in ("right", "left"):
+            raise ValueError(f"hand_type must be 'right' or 'left', got: {hand_type}")
 
     def convert(
         self,
@@ -34,7 +58,7 @@ class DepthKeypointConverter:
         img_w: int,
         img_h: int,
     ) -> np.ndarray:
-        """Convert 2D landmarks + depth to wrist-frame 3D keypoints.
+        """Convert 2D landmarks + depth to MANO-frame 3D keypoints.
 
         Args:
             detection: MediaPipe detection with landmarks_2d and world_landmarks.
@@ -43,7 +67,7 @@ class DepthKeypointConverter:
             img_h: Color image height in pixels.
 
         Returns:
-            (21, 3) float32 array in meters, wrist at origin.
+            (21, 3) float32 array in meters, wrist at origin, MANO-aligned.
         """
         import pyrealsense2 as rs
 
@@ -71,7 +95,12 @@ class DepthKeypointConverter:
 
         # Shift to wrist origin
         pts_3d -= pts_3d[self.WRIST_INDEX]
-        return pts_3d
+
+        # Apply MANO transform (required by dex-retargeting)
+        if self._apply_mano:
+            pts_3d = apply_mano_transform(pts_3d, hand_type=self._hand_type)
+
+        return pts_3d.astype(np.float32)
 
     def _sample_depth(self, depth_m: np.ndarray, px: int, py: int) -> float:
         """Sample depth at (px, py) using a neighborhood median for noise rejection.
