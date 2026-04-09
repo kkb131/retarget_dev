@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# Generated data
+*.pkl
+*.npy
+*.mp4
+*.avi
+*.webm
+
+# dex-retargeting repo (clone separately via git submodule or manual clone)
+dex-retargeting/
+
+# Large model files
+sensing/core/models/*.task
+models/**/*.pth
+models/**/*.onnx
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Local configs (user-specific)
+*.local.yaml
+my_*.yaml
