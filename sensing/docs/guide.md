@@ -131,7 +131,7 @@ python3 -m retarget_dev.sensing.phone.main \
 ### 의존성 설치
 
 ```bash
-pip install pyrealsense2 mediapipe opencv-python numpy
+pip install pyrealsense2 mediapipe opencv-python "numpy<2"
 ```
 
 ### 실행
