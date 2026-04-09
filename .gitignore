@@ -35,3 +35,7 @@ Thumbs.db
 # Local configs (user-specific)
 *.local.yaml
 my_*.yaml
+
+# Manus SDK lib
+sensing/manus/sdk/ManusSDK/lib/libManusSDK.so
+sensing/manus/sdk/ManusSDK/lib/libManusSDK_Integrated.so
