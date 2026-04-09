@@ -19,7 +19,7 @@ __pycache__/
 dex-retargeting/
 
 # Large model files
-sensing/core/models/*.task
+# sensing/core/models/*.task
 models/**/*.pth
 models/**/*.onnx
 

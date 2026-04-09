@@ -1,7 +1,7 @@
 """Abstract base class for hand retargeting models.
 
-All retargeting models (Fingertip IK, AnyTeleop, etc.) implement this
-interface so they can be swapped interchangeably in the pipeline:
+All retargeting models (Direct Mapping, dex-retargeting, etc.) implement
+this interface so they can be swapped interchangeably in the pipeline:
 
     SensingSource → RetargetingModel.retarget(keypoints) → joint angles
 """

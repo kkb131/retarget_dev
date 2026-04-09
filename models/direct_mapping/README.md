@@ -190,4 +190,4 @@ python3 -m retarget_dev.models.direct_mapping.main \
 - **Spread 불안정**: 팜 평면 추정이 노이즈에 민감
 - **선형 매핑**: 실제 손가락 관절의 비선형 커플링을 반영하지 못함
 
-→ 이러한 한계를 해결하기 위해 **2세대 Fingertip IK**, **3세대 AnyTeleop** 모델 사용
+→ 이러한 한계를 해결하기 위해 **dex-retargeting (3세대)** 기반 모델 사용 (`models/dex_retarget/`)

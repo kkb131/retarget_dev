@@ -382,40 +382,40 @@ TypeTele(2025)이 조작 타입 기반으로 리타게팅의 패러다임 자체
 ### 8.1 전체 조합 평가
 
 ```
-             │  1세대 (Direct)   │  2세대 (Fingertip IK) │  3세대 (Multi-Cost Opt)
-─────────────┼───────────────────┼───────────────────────┼──────────────────────────
-Manus        │ [1A] ★★★★★       │        N/A            │
-Ergonomics   │ 각도→각도 직접     │ (position 없음)       │
-             │                   │                       │
-Manus        │ [1B] ★★★         │ [2A] ★★★★            │
-Skeleton     │ quat→angle 분해   │ tip position→IK       │
-             │                   │                       │
-Manus        │                   │                       │ [3A] ★★★★★
-Ergo+Skeleton│      N/A          │        N/A            │ 모든 정보 통합 최적화
-             │                   │                       │
-MediaPipe    │ [1C] ★★★★        │ [2B] ★★★             │ [3B] ★★★★
-Hands        │ position→angle    │ tip position→IK       │ position 기반 최적화
+             │  1세대 (Direct)   │  3세대 (Multi-Cost Opt)
+─────────────┼───────────────────┼──────────────────────────
+Manus        │ [1A] ★★★★★       │
+Ergonomics   │ 각도→각도 직접     │
+             │                   │
+Manus        │ [1B] ★★★         │
+Skeleton     │ quat→angle 분해   │
+             │                   │
+Manus        │                   │ [3A] ★★★★★
+Ergo+Skeleton│      N/A          │ 모든 정보 통합 최적화
+             │                   │
+MediaPipe    │ [1C] ★★★★        │ [3B] ★★★★
+Hands        │ position→angle    │ position 기반 최적화
 ```
 
-### 8.2 합리적 조합 7개 선정
+> **2세대 (Fingertip IK)는 의도적으로 제외**: 별도 IK 솔버를 만드는 대신, 같은 fingertip 위치 정보를 3세대 multi-cost 최적화의 cost 항으로 직접 통합 (`models/dex_retarget/`). 단독 fingertip IK 구현(`fingertip_ik` 모듈)은 2026-04-09에 deprecate.
+
+### 8.2 합리적 조합 5개 선정
 
 | ID | 입력 소스 | 세대 | 전략 | 권장도 | 개발순서 |
 |----|----------|------|------|--------|---------|
 | **1A** | Manus Ergonomics | 1세대 | Ergo Direct Mapping | ★★★★★ | **1번째** |
 | **1B** | Manus Skeleton | 1세대 | Skeleton Quat Decomposition | ★★★☆☆ | 선택적 |
 | **1C** | MediaPipe | 1세대 | Vector Angle Extraction | ★★★★☆ | **2번째** |
-| **2A** | Manus Skeleton | 2세대 | Skeleton Fingertip IK | ★★★★☆ | **3번째** |
-| **2B** | MediaPipe | 2세대 | MediaPipe Fingertip IK | ★★★☆☆ | 선택적 |
-| **3A** | Manus Ergo+Skeleton | 3세대 | Manus Multi-Cost Optimization | ★★★★★ | **4번째** |
-| **3B** | MediaPipe | 3세대 | MediaPipe Multi-Cost Optimization | ★★★★☆ | **5번째** |
+| **3A** | Manus Ergo+Skeleton | 3세대 | Manus Multi-Cost Optimization | ★★★★★ | **3번째** |
+| **3B** | MediaPipe | 3세대 | MediaPipe Multi-Cost Optimization | ★★★★☆ | **4번째** |
 
 ### 8.3 제외된 조합과 그 이유
 
 | 조합 | 제외 이유 |
 |------|----------|
-| Manus Ergonomics + 2세대 IK | Ergonomics는 각도만 제공 → fingertip 3D position이 없어 IK 불가 |
 | Manus Ergonomics 단독 + 3세대 | 3세대의 핵심인 fingertip position cost를 계산하려면 Skeleton position 필요 |
 | Manus Skeleton 단독 + 3세대 | 가능하나, Ergonomics angle prior(C3)가 없으면 자세 자연스러움 저하. 3A에 Ergo 포함이 더 우월 |
+| 2세대 (Fingertip IK) 단독 구현 | 같은 fingertip 정보가 3세대 cost 항으로 통합 가능. 별도 IK 솔버를 유지할 이유 없음 |
 
 ---
 
@@ -603,7 +603,7 @@ flex = extract_joint_angle(
 | 디버깅 | 매우 쉬움 | 어려움 |
 | **결론** | **프로토타입에 선택** | 1A에 문제 발견 시 대안 |
 
-> **권장**: 1B는 1A가 이미 충분한 경우 건너뛰고 2세대로 진행. 1A의 Thumb opposition 등에서 품질 문제가 발생할 때만 1B 검토.
+> **권장**: 1B는 1A가 이미 충분한 경우 건너뛰고 3세대로 진행. 1A의 Thumb opposition 등에서 품질 문제가 발생할 때만 1B 검토.
 
 ---
 
@@ -725,223 +725,11 @@ if landmark.visibility < 0.5 or landmark.presence < 0.5:
 | 파지 정확도 | ★★ | ★★ | ★★ |
 | **권장 시나리오** | **Manus 보유 시 최우선** | 1A 문제 시 대안 | **글러브 없을 때** |
 
-> **공통 한계**: 1세대 전체가 link 길이 차이를 무시 → fingertip 위치 불일치 → 파지 부정확. 이것이 2세대로 넘어가는 동기.
+> **공통 한계**: 1세대 전체가 link 길이 차이를 무시 → fingertip 위치 불일치 → 파지 부정확. 이것이 fingertip 위치 정보를 cost 항으로 통합하는 3세대로 넘어가는 동기.
 
 ---
 
-## 10. 2세대: 손가락 끝 공간 + 역기구학 (Fingertip IK) — 실전 설계
-
-### 핵심 원리
-```
-p_target = transform(p_human_fingertip, human_scale → robot_scale)
-θ_robot = IK(p_target, DG5F_kinematics)
-```
-인간 **fingertip 3D 위치**를 DG5F 스케일로 변환 → DG5F **역기구학(IK)**으로 관절 각도 산출.
-1세대 대비 핵심 개선: **물체와의 접촉점(fingertip)을 직접 매칭** → 파지 정확도 향상.
-
----
-
-### [2A] Manus Skeleton → Fingertip IK → DG5F
-
-#### 파이프라인
-```
-Manus Glove
-  → manus_ros2 node (120Hz)
-    → ManusGlove.raw_nodes[] (25 nodes, world positions)
-      → Tip 노드 5개 추출: nodes[4, 9, 14, 19, 24].position
-        → Wrist(node[0]) 기준 상대 좌표 변환
-          → human→robot 스케일 변환 (bone length ratio)
-            → DG5F per-finger IK solver
-              → clamp → DG5F JointState
-```
-
-#### 스케일 변환 (핵심 전처리)
-```python
-# Human과 DG5F의 finger chain 총 길이로 per-finger scale 계산
-# 초기 캘리브레이션에서 1회 측정 후 고정
-
-# Manus Skeleton에서 측정
-human_lengths = {
-    'thumb':  |node[2]-node[1]| + |node[3]-node[2]| + |node[4]-node[3]|,
-    'index':  |node[6]-node[5]| + |node[7]-node[6]| + |node[8]-node[7]| + |node[9]-node[8]|,
-    'middle': |node[11]-node[10]| + |node[12]-node[11]| + |node[13]-node[12]| + |node[14]-node[13]|,
-    ...
-}
-
-# DG5F URDF에서 미리 계산 (retargeting_research.md 참조)
-dg5f_lengths = {
-    'thumb':  42.0 + 31.0 + 38.8 + 36.3,  # 148.1mm
-    'index':  31.6 + 38.8 + 38.8 + 25.5,  # 134.7mm
-    ...
-}
-
-scale = {f: dg5f_lengths[f] / human_lengths[f] for f in fingers}
-
-# 매 프레임: target position 계산
-target_pos = (human_tip_pos - human_wrist_pos) * scale[finger]
-```
-
-#### DG5F Per-Finger IK Solver 설계
-
-```python
-class DG5FFingerIK:
-    """DG5F 손가락별 4-DOF IK solver (Pinocchio DLS)"""
-
-    def __init__(self, finger_id):
-        # DG5F URDF에서 해당 finger sub-chain 로드
-        self.model, self.data = load_finger_subchain(finger_id)
-        self.tip_frame_id = get_tip_frame_id(finger_id)
-        self.n_joints = 4  # 모든 finger = 4 DOF
-
-    def solve(self, target_pos, q_init=None, max_iter=50, damping=1e-3):
-        """
-        Damped Least Squares (DLS) IK
-        4 DOF → 3D position = 1-DOF redundancy → damping으로 해결
-        """
-        q = q_init if q_init is not None else np.zeros(self.n_joints)
-
-        for _ in range(max_iter):
-            # Forward kinematics
-            pin.forwardKinematics(self.model, self.data, q)
-            pin.updateFramePlacements(self.model, self.data)
-            p_current = self.data.oMf[self.tip_frame_id].translation
-
-            # Error
-            error = target_pos - p_current
-            if np.linalg.norm(error) < 1e-4:  # 0.1mm 정확도
-                break
-
-            # Jacobian (translation only, 3x4)
-            J = pin.computeFrameJacobian(
-                self.model, self.data, q,
-                self.tip_frame_id, pin.LOCAL_WORLD_ALIGNED
-            )[:3, :]  # position rows only
-
-            # DLS: Δq = J^T (J J^T + λ²I)^{-1} error
-            JJT = J @ J.T + damping**2 * np.eye(3)
-            dq = J.T @ np.linalg.solve(JJT, error)
-            q = np.clip(q + dq, self.lower, self.upper)
-
-        return q
-```
-
-#### Redundancy 해결 전략 (1-DOF 여유)
-
-4 DOF로 3D position(3 constraints) → 1-DOF 자유 → **무한한 IK 해 중 하나를 선택해야 함**
-
-| 전략 | 방법 | 장점 | 단점 |
-|------|------|------|------|
-| **(a) Abduction 고정** | abd = Manus Ergo Spread 값 사용, 나머지 3-DOF planar IK | 간단, Ergo+Skeleton 혼합 | Ergo 없으면 불가 |
-| **(b) Damping** | DLS의 λ가 최소 norm 해 유도 | 구현 간단 | 의미 없는 자세 가능 |
-| **(c) θ_prev 기준 최소 변화** | `argmin ||θ - θ_prev||` subject to FK(θ)=target | 부드러운 전이 | 초기 자세 의존 |
-| **권장** | **(a) + (c) 조합**: abd=Ergo, 나머지 3-DOF에서 θ_prev 기준 DLS | | |
-
-```python
-# 권장 방식: Ergo-guided IK
-def solve_ergo_guided(self, target_pos, ergo_abd, q_prev):
-    """Abduction을 Ergo 값으로 고정, 나머지 3-DOF DLS"""
-    q = q_prev.copy()
-    q[0] = ergo_abd  # Abduction = Ergonomics Spread
-
-    # 나머지 3 joints (MCP, PIP, DIP)만 IK로 풀기
-    # ... planar 3-link IK 또는 3-DOF DLS ...
-    return q
-```
-
-#### 장점
-| 항목 | 설명 |
-|------|------|
-| **파지 정확도 향상** | fingertip 위치 직접 매칭 → 물체 잡기 성공률 ↑ |
-| **Link 길이 차이 자동 보상** | IK가 DG5F kinematics 기반이므로 로봇 구조에 맞는 각도 산출 |
-| **Manus 120Hz 활용** | 높은 갱신율로 부드러운 동작 |
-| **Ergo+Skeleton 혼합** | 전략(a)로 Ergonomics와 Skeleton을 자연스럽게 결합 |
-
-#### 한계점
-| 항목 | 설명 |
-|------|------|
-| **자세 모호성** | 같은 fingertip 위치에 여러 관절 자세 가능 (펴진 채 vs C자 곡선) |
-| **중간 관절 부자연스러움** | IK가 tip 위치만 맞추므로 PIP/DIP 배분이 비인간적일 수 있음 |
-| **Thumb IK 어려움** | rj_dg_1_2 (Z축 opposition)이 chain 중간에 있어 일반 planar IK 적용 불가 |
-| **Jacobian singularity** | 완전히 펴진 상태에서 J rank 감소 → damping 필수 |
-| **Pinocchio 의존성** | FK/Jacobian 계산에 Pinocchio 라이브러리 필요 |
-
-#### 개발 시 주의점
-
-**1. Wrist frame 통일**
-```
-Manus world 좌표 (configurable, 기본 Z-up)
-  → DG5F palm frame (rl_dg_palm 기준) 으로 변환
-  → Rotation matrix R_manus_to_dg5f를 캘리브레이션에서 결정
-```
-
-**2. Thumb IK 별도 구현**
-```
-Thumb chain: rj_1_1(X, abd) → rj_1_2(Z, opp) → rj_1_3(X, flex) → rj_1_4(X, flex)
-  → 축이 X,Z,X,X로 비평면적 → 일반 planar IK 불가
-  → DLS numerical IK 필수, 또는:
-  → rj_1_1(abd)과 rj_1_2(opp)을 Ergo 값으로 고정 → 나머지 2-DOF planar IK
-```
-
-**3. IK 수렴 실패 대응**
-```python
-if not ik_converged:
-    # Zero-order hold: 이전 프레임 관절 각도 유지
-    q = q_prev
-    # 로그 경고 출력
-    logger.warning(f"Finger {finger_id} IK failed, holding previous pose")
-```
-
-**4. 스케일 캘리브레이션 자세**
-```
-사용자가 손을 완전히 펴고 손가락을 벌린 상태에서:
-  → 모든 bone length 측정 (Manus Skeleton node 간 거리)
-  → DG5F URDF link 길이와 비교하여 per-finger scale 계산
-  → 1회 측정 후 세션 동안 고정
-```
-
----
-
-### [2B] MediaPipe Hands → Fingertip IK → DG5F
-
-#### 파이프라인
-```
-RGB Camera (30-60fps)
-  → MediaPipe Hands
-    → world_landmarks[] (21 positions, meters)
-      → Tip landmark 5개: landmarks[4, 8, 12, 16, 20]
-        → wrist(0) 기준 상대 위치
-          → human→robot scale → DG5F IK → JointState
-```
-
-#### 2A와의 핵심 차이
-
-| | 2A (Manus) | 2B (MediaPipe) |
-|---|---|---|
-| Fingertip 정확도 | ★★★★★ (센서 직접) | ★★★ (depth 노이즈) |
-| 갱신율 | 120Hz | 30-60Hz |
-| Occlusion 내성 | ★★★★★ | ★★ (주먹 시 TIP 가려짐) |
-| IK 해 안정성 | 높음 | 낮음 (입력 떨림 → IK 진동) |
-| Abduction 고정 소스 | Manus Ergo → 정확 | 1C Vector → 노이즈 |
-| 접근성 | 글러브 필요 | **카메라만** |
-
-#### 장점
-- 글러브 없이 fingertip IK 파지 가능
-- 2A와 **동일한 IK solver 코드** 재사용 (입력만 교체)
-
-#### 한계점
-- **Depth 노이즈 → IK 진동**: MediaPipe Z축 부정확이 IK에 직접 전파
-- **Occlusion 시 IK 발산**: 가려진 TIP → 잘못된 target → 비정상 해
-- **Redundancy 해결 어려움**: Ergonomics abd 값이 없으므로 전략(a) 사용 불가 → 전략(c)만 가능
-
-#### 개발 시 주의점
-1. **Heavy filtering 필수**: fingertip position에 One Euro Filter → IK 입력 안정화
-2. **Confidence 기반 fallback**: visibility < 0.5인 TIP은 이전 프레임 값 유지
-3. **PIP-DIP coupling 추가**: IK 해에 `dip = 0.67 * pip` 제약 추가 → 자세 자연스러움
-4. **2A 개발 후 진행 권장**: IK solver를 2A에서 검증한 뒤 MediaPipe 입력만 교체
-
----
-
-## 11. 3세대: 다중 제약 최적화 (Multi-Cost Optimization) — 실전 설계
+## 10. 3세대: 다중 제약 최적화 (Multi-Cost Optimization) — 실전 설계
 
 ### 핵심 원리
 ```
@@ -1290,7 +1078,7 @@ if consecutive_low_conf[f] > 5:
 
 ---
 
-## 12. 세대별 진화 다이어그램
+## 11. 세대별 진화 다이어그램
 
 ```
 1세대                       2세대                       3세대
@@ -1321,7 +1109,7 @@ scale + offset              IK(p_target)                minimize Σ w_i C_i
 
 ---
 
-## 13. 권장 개발 로드맵
+## 12. 권장 개발 로드맵
 
 ### Phase 1: 기반 구축 + 1세대 (1~2주)
 
@@ -1336,7 +1124,7 @@ scale + offset              IK(p_target)                minimize Σ w_i C_i
   retarget_dev/
   ├── core/
   │   ├── dg5f_config.py         # Joint names, limits, link lengths (URDF 파생)
-  │   ├── dg5f_fk.py             # Pinocchio FK (이후 세대에서 재사용)
+  │   ├── dg5f_fk.py             # Pinocchio joint metadata (joint_names, q_min/q_max)
   │   └── filters.py             # EMA, One Euro Filter
   ├── gen1/
   │   ├── ergo_direct.py         # [1A]
@@ -1352,32 +1140,7 @@ scale + offset              IK(p_target)                minimize Σ w_i C_i
 - [ ] 캘리브레이션 후 가동 범위 커버리지
 - [ ] MediaPipe depth 노이즈 수준 정량 파악
 
-### Phase 2: 2세대 IK (1~2주)
-
-```
-목표: Fingertip 기반 파지 정확도 확보
-
-구현:
-  [2A] Manus Skeleton Fingertip IK
-전제:
-  Phase 1의 dg5f_fk.py 완성
-
-산출물:
-  retarget_dev/
-  └── gen2/
-      ├── fingertip_ik.py        # Per-finger DLS IK solver
-      ├── scale_calibrator.py    # Human→Robot bone length ratio
-      └── hybrid_ik.py           # Abduction=Ergo, Flexion=IK 혼합
-```
-
-**Phase 2 체크리스트**:
-- [ ] IK 수렴율 (성공/실패 비율) 측정
-- [ ] Fingertip 위치 오차 (mm) 정량 측정
-- [ ] Thumb IK 특이점 발생 빈도 확인
-- [ ] 1A 대비 파지 성공률 비교 (동일 물체 5회 반복)
-- [ ] Ergo-guided IK (abd 고정) vs Full IK 비교
-
-### Phase 3: 3세대 최적화 (2~3주)
+### Phase 2: 3세대 최적화 (2~3주)
 
 ```
 목표: Production-quality 리타게팅
@@ -1386,7 +1149,7 @@ scale + offset              IK(p_target)                minimize Σ w_i C_i
   [3A] Manus Multi-Cost Optimization  ← 최우선
   [3B] MediaPipe Multi-Cost           ← 3A 완성 후
 전제:
-  Phase 1 (1A 매핑), Phase 2 (FK/IK)
+  Phase 1 (1A 매핑, FK/joint metadata)
 
 산출물:
   retarget_dev/
@@ -1394,19 +1157,19 @@ scale + offset              IK(p_target)                minimize Σ w_i C_i
       ├── cost_functions.py      # C1~C6 개별 cost 함수 모듈
       ├── optimizer.py           # scipy SLSQP wrapper + warm start
       ├── weight_config.yaml     # 가중치 프리셋 (free/grasp/hold)
-      └── retargeter.py          # 통합 retargeting 클래스 (1A/2A/3A 모드 전환)
+      └── retargeter.py          # 통합 retargeting 클래스 (1A/3A 모드 전환)
 ```
 
-**Phase 3 체크리스트**:
+**Phase 2 체크리스트**:
 - [ ] Per-frame 최적화 시간 < 5ms (120Hz에서 OK)
 - [ ] Self-collision 발생 빈도 → 0에 수렴
 - [ ] 가중치 프리셋별 행동 차이 확인
-- [ ] 3A vs 1A vs 2A 파지 성공률 비교
+- [ ] 3A vs 1A 파지 성공률 비교
 - [ ] 3A vs 3B 품질 비교
 
 ---
 
-## 14. 의사결정 트리: 어떤 조합을 쓸 것인가
+## 13. 의사결정 트리: 어떤 조합을 쓸 것인가
 
 ```
 Q1: Manus 글러브 사용 가능한가?
@@ -1418,13 +1181,9 @@ Q1: Manus 글러브 사용 가능한가?
 │   │   → [1A] Manus Ergonomics Direct Mapping
 │   │     (2시간 구현, 즉시 동작)
 │   │
-│   ├── 물체 파지(grasping) 필요
-│   │   → [2A] Manus Skeleton Fingertip IK
-│   │     (fingertip 위치 매칭으로 파지 정확도 ↑)
-│   │
-│   └── 최고 품질 / Production 수준
+│   └── 물체 파지(grasping) / Production 수준
 │       → [3A] Manus Ergo + Skeleton Multi-Cost
-│         (모든 정보 통합, self-collision 방지 포함)
+│         (다중 cost 최적화, self-collision 방지 포함)
 │
 └── NO (카메라만)
     Q2: 필요한 정확도 수준은?
@@ -1433,34 +1192,29 @@ Q1: Manus 글러브 사용 가능한가?
     │   → [1C] MediaPipe Vector Angles
     │     (반나절 구현, 글러브 불필요)
     │
-    ├── 물체 파지 필요
-    │   → [2B] MediaPipe Fingertip IK
-    │     (depth 노이즈 주의, heavy filter 필수)
-    │
-    └── 최고 품질
+    └── 물체 파지 / 최고 품질
         → [3B] MediaPipe Multi-Cost
           (해부학적 prior로 Ergo 대체)
 ```
 
 ---
 
-## 15. 핵심 기술 요소 재사용 매트릭스
+## 14. 핵심 기술 요소 재사용 매트릭스
 
 각 세대에서 구현한 모듈이 다음 세대에서 어떻게 재사용되는지:
 
 ```
-                    1A     1B     1C     2A     2B     3A     3B
-                   (Ergo  (Skel  (MP    (Skel  (MP    (Multi (Multi
-                    Dir)   Quat)  Vec)   IK)    IK)    Manus) MP)
-─────────────────────────────────────────────────────────────────
-dg5f_config.py      ✓      ✓      ✓      ✓      ✓      ✓      ✓
-dg5f_fk.py                               ✓      ✓      ✓      ✓
-filters.py          ✓      ✓      ✓      ✓      ✓      ✓      ✓
-ergo_direct.py      ✓                                   ✓(C3)
-fingertip_ik.py                           ✓      ✓
-cost_functions.py                                       ✓      ✓
-optimizer.py                                            ✓      ✓
-calibration.py      ✓      ✓      ✓      ✓      ✓      ✓      ✓
+                    1A     1B     1C     3A     3B
+                   (Ergo  (Skel  (MP    (Multi (Multi
+                    Dir)   Quat)  Vec)   Manus) MP)
+─────────────────────────────────────────────────────
+dg5f_config.py      ✓      ✓      ✓      ✓      ✓
+dg5f_fk.py          ✓                    ✓      ✓
+filters.py          ✓      ✓      ✓      ✓      ✓
+ergo_direct.py      ✓                    ✓(C3)
+cost_functions.py                        ✓      ✓
+optimizer.py                             ✓      ✓
+calibration.py      ✓      ✓      ✓      ✓      ✓
 ```
 
-> **핵심 관찰**: 1세대의 `ergo_direct.py`는 3세대에서 C3 cost의 기반으로 재사용된다. 1A를 잘 만들면 3A의 C3가 자연스럽게 완성된다. 마찬가지로 2A의 `fingertip_ik.py`는 3A의 C1 계산에 FK 코드가 재사용된다.
+> **핵심 관찰**: 1세대의 `ergo_direct.py`는 3세대에서 C3 cost의 기반으로 재사용된다. 1A를 잘 만들면 3A의 C3가 자연스럽게 완성된다. 마찬가지로 1세대 단계에서 만든 `dg5f_fk.py` (joint metadata)는 3세대 cost function의 forward kinematics 계산에 그대로 재사용된다.

@@ -491,9 +491,8 @@ palm_normal = cross(landmarks[5].xyz - landmarks[0].xyz,
 |------|---------|--------|--------|---------|------|
 | **A. Direct Angle Mapping** | Manus Ergonomics | ★☆☆ (간단) | ★★★★ | ★★★★★ (120Hz) | **1순위** |
 | **B. Quaternion Decomposition** | Manus Skeleton | ★★★ (중간) | ★★★★★ | ★★★★☆ (120Hz) | 2순위 |
-| **C. IK-based Fingertip** | Manus Skeleton | ★★★★ (복잡) | ★★★★★ | ★★★☆☆ | 고급 |
+| **C. Multi-Cost Optimization** | Manus Skeleton + MediaPipe | ★★★★ (복잡) | ★★★★★ | ★★★☆☆ | 고급 (`models/dex_retarget`) |
 | **D. Vector Angle Extraction** | MediaPipe Hands | ★★★ (중간) | ★★★ | ★★★☆☆ (30-60fps) | 3순위 |
-| **E. Fingertip IK** | MediaPipe Hands | ★★★★ (복잡) | ★★★ | ★★☆☆☆ | 대안 |
 
 ### 7.2 권장 구현 순서
 

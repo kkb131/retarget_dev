@@ -48,6 +48,80 @@ _ERGO_TYPE_MAP = {
     "PinkyPIPStretch": 18, "PinkyDIPStretch": 19,
 }
 
+# Manus raw skeleton (chain_type, joint_type) → MANO 21-keypoint index.
+#
+# The publisher emits 25 raw nodes per hand: 1 wrist + thumb (4 joints, no
+# Intermediate) + 4 fingers × 5 joints. MANO uses 21: wrist + 5 × 4 joints.
+# The 4 non-thumb "MCP" nodes (= SDK Metacarpal at the base of the metacarpal
+# bone) have no MANO counterpart and are dropped.
+#
+# WARNING: the publisher's joint string labels are anatomically off-by-one
+# vs. their semantic meaning (see ManusDataPublisher.cpp:JointTypeToString):
+#   SDK enum         publisher string   anatomical
+#   Metacarpal       "MCP"              CMC / metacarpal-base
+#   Proximal         "PIP"              MCP (knuckle)
+#   Intermediate     "IP"               PIP
+#   Distal           "DIP"              DIP
+#   Tip              "TIP"              fingertip
+# We match the publisher strings (the actual wire format), not the labels.
+_MANO_REMAP = {
+    # Thumb (4 joints — no Intermediate)
+    ("Thumb", "MCP"): 1,    # → MANO thumb CMC
+    ("Thumb", "PIP"): 2,    # → MANO thumb MCP
+    ("Thumb", "DIP"): 3,    # → MANO thumb IP
+    ("Thumb", "TIP"): 4,    # → MANO thumb tip
+    # Index — drop SDK "MCP" (Metacarpal)
+    ("Index", "PIP"): 5,
+    ("Index", "IP"): 6,
+    ("Index", "DIP"): 7,
+    ("Index", "TIP"): 8,
+    # Middle
+    ("Middle", "PIP"): 9,
+    ("Middle", "IP"): 10,
+    ("Middle", "DIP"): 11,
+    ("Middle", "TIP"): 12,
+    # Ring
+    ("Ring", "PIP"): 13,
+    ("Ring", "IP"): 14,
+    ("Ring", "DIP"): 15,
+    ("Ring", "TIP"): 16,
+    # Pinky
+    ("Pinky", "PIP"): 17,
+    ("Pinky", "IP"): 18,
+    ("Pinky", "DIP"): 19,
+    ("Pinky", "TIP"): 20,
+}
+
+
+def _remap_to_mano_21(raw_nodes) -> Optional[np.ndarray]:
+    """Convert Manus raw skeleton (~25 nodes) → MANO 21-node (21, 7) layout.
+
+    Uses the (chain_type, joint_type) string pair on each ManusRawNode to
+    deterministically place each node, regardless of publish order. The
+    wrist comes from any node with chain_type="Hand". The 4 non-thumb
+    Metacarpal nodes have no MANO counterpart and are dropped.
+
+    Returns
+    -------
+    np.ndarray of shape (21, 7) with rows [x, y, z, qw, qx, qy, qz],
+    or None if any required MANO slot is unfilled (e.g., partial dropout).
+    """
+    skel = np.full((21, 7), np.nan, dtype=np.float32)
+    for node in raw_nodes:
+        if node.chain_type == "Hand":
+            idx = 0  # wrist root — joint_type may be "Invalid"
+        else:
+            idx = _MANO_REMAP.get((node.chain_type, node.joint_type))
+            if idx is None:
+                continue  # SDK Metacarpal of non-thumb finger → drop
+        p = node.pose.position
+        q = node.pose.orientation
+        skel[idx] = [p.x, p.y, p.z, q.w, q.x, q.y, q.z]
+
+    if np.isnan(skel).any():
+        return None
+    return skel
+
 
 class Ros2ManusProvider:
     """Receives Manus glove data from ROS2 topics.
@@ -78,6 +152,10 @@ class Ros2ManusProvider:
         self._node = None
         self._spin_thread: Optional[threading.Thread] = None
         self._running = False
+
+        # One-shot diagnostic flags for the 25→21 MANO remap
+        self._remap_logged_ok = False
+        self._remap_logged_fail = False
 
     def start(self) -> None:
         """Initialize ROS2 node and subscribe to manus_glove topics."""
@@ -159,17 +237,17 @@ class Ros2ManusProvider:
                 joint_angles[f * 4] for f in range(NUM_FINGERS)
             ], dtype=np.float32)
 
-            # Raw skeleton → ndarray[N, 7] (x, y, z, qw, qx, qy, qz)
+            # Raw skeleton (~25 nodes) → MANO 21-node (21, 7) layout.
+            # The publisher forwards all SDK nodes including 4 non-thumb
+            # Metacarpal joints that have no MANO counterpart; the helper
+            # uses (chain_type, joint_type) metadata to drop them and
+            # reorder to wrist=0, thumb=[1..4], index=[5..8], ..., pinky=[17..20].
             skeleton = None
             has_skeleton = False
             if msg.raw_nodes and len(msg.raw_nodes) > 0:
-                skel_list = []
-                for node in msg.raw_nodes:
-                    p = node.pose.position
-                    q = node.pose.orientation
-                    skel_list.append([p.x, p.y, p.z, q.w, q.x, q.y, q.z])
-                skeleton = np.array(skel_list, dtype=np.float32)
-                has_skeleton = True
+                skeleton = _remap_to_mano_21(msg.raw_nodes)
+                has_skeleton = skeleton is not None
+                self._diagnose_remap(msg.raw_nodes, skeleton)
 
             # Wrist from first skeleton node
             wrist_pos = np.zeros(3, dtype=np.float32)
@@ -200,3 +278,25 @@ class Ros2ManusProvider:
 
         except Exception as e:
             logger.warning("Glove callback error: %s", e)
+
+    def _diagnose_remap(self, raw_nodes, mapped) -> None:
+        """One-shot logging for the 25→21 MANO remap result.
+
+        Logs INFO once on the first successful remap, WARNING once on the
+        first failure (showing which (chain, joint) pairs were received so
+        the user can debug missing fingers / unknown labels).
+        """
+        if mapped is not None and not self._remap_logged_ok:
+            logger.info(
+                "Manus raw skeleton: %d raw nodes → MANO 21 (remap OK)",
+                len(raw_nodes),
+            )
+            self._remap_logged_ok = True
+        elif mapped is None and not self._remap_logged_fail:
+            keys = sorted({(n.chain_type, n.joint_type) for n in raw_nodes})
+            logger.warning(
+                "Manus raw skeleton remap incomplete — MANO slots unfilled. "
+                "Received %d nodes with (chain, joint) pairs: %s",
+                len(raw_nodes), keys,
+            )
+            self._remap_logged_fail = True

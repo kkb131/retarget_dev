@@ -27,7 +27,7 @@ from retarget_dev.models.direct_mapping.angle_extractor import (
     extract_all_angles_debug,
     FINGER_NAMES,
 )
-from retarget_dev.models.fingertip_ik.dg5f_fk import DG5FKinematics
+from retarget_dev.models.direct_mapping.dg5f_fk import DG5FKinematics
 from retarget_dev.sensing.common import HandKeypoints
 
 logger = logging.getLogger(__name__)
