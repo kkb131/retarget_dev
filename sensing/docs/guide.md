@@ -215,6 +215,77 @@ PinkySpread(16), PinkyMCPStretch(17), PinkyPIPStretch(18), PinkyDIPStretch(19)
 source ~/manus_ws/install/setup.bash
 ```
 
+#### manus_ros2 ROS2 패키지 빌드 (최초 1회)
+
+`manus_data_publisher` 노드는 Manus C++ SDK 를 ROS2 wrapper 로 감싼 것입니다. 빌드하려면:
+
+**1. 사전 요건**
+
+- ROS2 Humble (`source /opt/ros/humble/setup.bash`)
+- `colcon` (`sudo apt install python3-colcon-common-extensions`)
+- 시스템 라이브러리: `sudo apt install -y build-essential libusb-1.0-0-dev libudev-dev libncurses5-dev pkg-config`
+- Manus SDK `.so` 파일 (`libManusSDK.so` 또는 `libManusSDK_Integrated.so`) — Manus 개발자 포털에서 별도 다운로드 필요. `.so` 파일은 250MB 정도라 git 에 포함되지 않습니다. 자세한 건 [`teleop_dev/sender/hand/sdk/README.md`](../../../../teleop_dev/sender/hand/sdk/README.md) 참조.
+
+**2. ROS2 워크스페이스에 두 패키지 등록**
+
+manus_ros2 와 manus_ros2_msgs 소스는 `teleop_dev` 안에 있습니다:
+```
+src/teleop_dev/sender/hand/sdk/ROS2/
+├── manus_ros2/         # publisher 노드 패키지
+├── manus_ros2_msgs/    # ManusGlove, ManusRawNode 메시지 정의
+└── ManusSDK/           # SDK header + .so (라이브러리는 별도 다운로드)
+```
+
+이 두 패키지를 colcon 워크스페이스에 인식시키려면 (예: `~/manus_ws`):
+```bash
+mkdir -p ~/manus_ws/src
+cd ~/manus_ws/src
+
+# 심볼릭 링크 (소스를 두 곳에 두지 않고 reference 만)
+ln -s /workspaces/tamp_ws/src/teleop_dev/sender/hand/sdk/ROS2/manus_ros2 .
+ln -s /workspaces/tamp_ws/src/teleop_dev/sender/hand/sdk/ROS2/manus_ros2_msgs .
+```
+
+또는 `tamp_ws` 자체의 `src/` 에 직접 빌드하고 싶다면 별도 워크스페이스 없이 tamp_ws 의 colcon 빌드에 포함하면 됨.
+
+**3. ManusSDK `.so` 배치 확인**
+
+[`CMakeLists.txt`](../../../../teleop_dev/sender/hand/sdk/ROS2/manus_ros2/CMakeLists.txt) 가 `target_link_libraries(... ManusSDK ...)` 로 링크하므로 다음 위치에 `.so` 가 있어야 합니다:
+```
+src/teleop_dev/sender/hand/sdk/ROS2/ManusSDK/lib/libManusSDK.so          # Remote mode
+src/teleop_dev/sender/hand/sdk/ROS2/ManusSDK/lib/libManusSDK_Integrated.so  # Integrated mode
+```
+
+Integrated mode 만 사용하는 경우 `CMakeLists.txt:27-28` 를 수정해 `ManusSDK_Integrated` 로 링크하세요 (현재 기본은 Remote mode).
+
+**4. 빌드**
+
+```bash
+cd ~/manus_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select manus_ros2_msgs manus_ros2 --symlink-install
+```
+
+`manus_ros2_msgs` 가 먼저 빌드되어야 `manus_ros2` 가 메시지 헤더를 찾을 수 있으므로 위 순서를 유지하세요.
+
+**5. 소싱 + 실행**
+
+```bash
+source ~/manus_ws/install/setup.bash
+ros2 run manus_ros2 manus_data_publisher
+# → /manus_glove_0 ~ /manus_glove_3 토픽으로 ManusGlove 메시지 publish
+```
+
+**6. 빌드 검증**
+
+```bash
+ros2 pkg executables manus_ros2          # → manus_ros2 manus_data_publisher
+ros2 interface show manus_ros2_msgs/msg/ManusGlove
+ros2 topic list | grep manus_glove        # publisher 실행 후
+```
+
+> **SteamVR 은 hand sensing 과 무관합니다** — Vive Tracker 는 팔/몸 포즈 추적용. SteamVR 설치가 필요하면 [`teleop_dev/docs/setup_guide.md` §1.3](../../../../teleop_dev/docs/setup_guide.md) 를 참조하세요.
+
 ### Direct Mapping과 연동
 
 ```bash
