@@ -225,11 +225,13 @@ class OfflineEgocentricProvider(SensingSource):
                 time.sleep(sleep_for)
             self._next_emit_time = max(self._next_emit_time + self._dt, now)
 
-        # Apply MANO transform with the (possibly inverted) hand to compensate
-        # for the dataset's mirrored coords. ``kp21_world`` is already
-        # wrist-centered (verified — every frame has hand_joints[hand, 0] = 0).
+        # Apply MANO transform using the Manus convention (matches the live
+        # ROS2 publisher path). ``kp21_world`` is already wrist-centered
+        # (verified — every frame has hand_joints[hand, 0] = 0).
         kp_mano = apply_mano_transform(
-            kp21_world.astype(np.float32), hand_type=self._mano_hand,
+            kp21_world.astype(np.float32),
+            hand_type=self._mano_hand,
+            convention="manus",
         )
 
         return HandKeypoints(

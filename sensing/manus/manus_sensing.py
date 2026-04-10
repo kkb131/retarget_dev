@@ -91,10 +91,11 @@ class ManusSensing(SensingSource):
         # coordinates (see module docstring), so without this step the
         # finger curl direction depends on glove orientation in space and
         # dex-retargeting sees a wrong axis (the historical fist→spread
-        # inversion bug). apply_mano_transform reuses the SVD palm-plane
-        # fit shared with phone/realsense.
+        # inversion bug). The "manus" convention selects a +y-flipped
+        # operator → MANO matrix to compensate for the SDK's VUH chirality;
+        # phone/realsense use the "mediapipe" convention via the same helper.
         keypoints_3d = apply_mano_transform(
-            keypoints_3d, hand_type=self._hand_side,
+            keypoints_3d, hand_type=self._hand_side, convention="manus",
         )
 
         return HandKeypoints(

@@ -96,9 +96,13 @@ class DepthKeypointConverter:
         # Shift to wrist origin
         pts_3d -= pts_3d[self.WRIST_INDEX]
 
-        # Apply MANO transform (required by dex-retargeting)
+        # Apply MANO transform (required by dex-retargeting).
+        # MediaPipe convention — RealSense path also goes through MediaPipe
+        # HandLandmarker for 2D detection, so the input chirality matches phone.
         if self._apply_mano:
-            pts_3d = apply_mano_transform(pts_3d, hand_type=self._hand_type)
+            pts_3d = apply_mano_transform(
+                pts_3d, hand_type=self._hand_type, convention="mediapipe",
+            )
 
         return pts_3d.astype(np.float32)
 

@@ -63,7 +63,10 @@ class KeypointConverter:
         kp = wl - wl[self.WRIST_INDEX]
 
         if self._apply_mano:
-            kp = apply_mano_transform(kp, hand_type=self._hand_type)
+            # MediaPipe convention — phone uses MediaPipe HandLandmarker output.
+            kp = apply_mano_transform(
+                kp, hand_type=self._hand_type, convention="mediapipe",
+            )
 
         if self._extra_rotation is not None:
             kp = (self._extra_rotation @ kp.T).T

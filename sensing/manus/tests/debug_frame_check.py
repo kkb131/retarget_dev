@@ -110,7 +110,10 @@ def main() -> int:
 
             raw = data.skeleton[:, :3].astype(np.float32)
             wrist_shift = raw - raw[WRIST_IDX]
-            mano = apply_mano_transform(wrist_shift, hand_type=args.hand)
+            # Manus convention — this script only inspects Manus providers.
+            mano = apply_mano_transform(
+                wrist_shift, hand_type=args.hand, convention="manus",
+            )
 
             print(f"\n########## frame {captured + 1}/{args.frames} ##########")
             _print_buffer("raw (SDK world)", raw)

@@ -407,6 +407,42 @@ OPERATOR2MANO_LEFT = [[ 0,  0, -1],
 - [ ] **Suspect 2 (NEW indices) 재평가**: dataset 단독으로는 NEW vs OLD 차이가 작음.
   실 글러브 또는 다른 episode 에서 NEW indices 의 우월성을 더 검증할 필요.
 
+### 4.4.5 후속: Phone 회귀 발견 & per-source 매트릭스 분리
+
+**증상**: 4.4.2 의 매트릭스 fix (`OPERATOR2MANO_RIGHT` row 1 = `[1, 0, 0]`) 이후
+사용자가 phone → DG-5F 경로가 깨졌다고 보고. Manus 가 정상화되는 대신 phone 이
+망가짐.
+
+**원인**: 단일 매트릭스를 모든 sensing source 가 공유하고 있었기 때문. Phone 의
+MediaPipe HandLandmarker 출력은 dex-retargeting upstream 의 단일 매트릭스
+(`row 1 = [-1, 0, 0]`) 에 calibrate 되어 있고, Manus 글러브 출력은 다른 chirality
+를 가져 row 1 = `[1, 0, 0]` 이 필요. 두 source 에 같은 매트릭스를 강제하면 한 쪽이
+반드시 깨짐.
+
+**해결**: [`mano_transform.py`](../../../sensing/core/mano_transform.py) 에서 매트릭스
+쌍을 두 개로 분리하고 `apply_mano_transform` 에 `convention` 파라미터 추가.
+
+| convention | 사용 source | RIGHT row 1 | 검증 출처 |
+|---|---|---|---|
+| `"mediapipe"` (default) | phone, RealSense | `[-1, 0, 0]` | dex-retargeting upstream + phone path 동작 |
+| `"manus"` | live ROS2, SDK, offline egocentric | `[1, 0, 0]` | manus-egocentric-sample regression test (4.4.2) + 사용자의 human_hand_video.mp4 재생 검증 |
+
+두 매트릭스의 관계: `MANUS = diag(1, -1, 1) @ MEDIAPIPE` (row 1 sign flip).
+출력 좌표계 비교: 같은 input 에 대해 `mediapipe.x = -manus.x`, y/z 동일 (= MANO +x
+축이 반대 방향을 가리킴).
+
+**호출 site 5곳** 모두 `convention=` 명시:
+- phone/realsense → `convention="mediapipe"` (default 와 같지만 의도를 명시)
+- manus_sensing / offline_egocentric_provider / debug_frame_check / regression_test_fixes
+  → `convention="manus"`
+
+**회귀 결과** (4.4.2 와 동일 조건 재실행):
+- A (no MANO + OLD indices): `+0.193`
+- B (MANO=R + OLD indices): `+2.332` ★
+- D (MANO=R + NEW indices, current state): `+2.251` ★
+
+→ Manus 경로 동작은 변화 없이 보존, phone 경로는 upstream 매트릭스로 복원.
+
 ## 5. 재현 / 회귀 검증
 
 ### 5.1 실 글러브 사용
