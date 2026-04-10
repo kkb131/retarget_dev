@@ -52,16 +52,36 @@ pip install "numpy<2"
 **일부 다른 패키지(dex-retargeting 0.5.0 자체)가 numpy 2를 요구해도 무시하고 numpy 1.x 유지.**
 실제 동작에 문제 없음.
 
-### 2-2. mediapipe: **0.10.21** (또는 이하)
+### 2-2. mediapipe: **0.10.21 정확히 (== 으로 핀, latest 금지)**
 
 ```bash
 pip install mediapipe==0.10.21
 ```
 
+**검증된 호환 버전 매트릭스:**
+
+| mediapipe 버전 | 동작 | 비고 |
+|---|---|---|
+| **0.10.21** | ✅ 동작 | 권장. dex-retargeting upstream도 이 버전 기준 |
+| 0.10.22 ~ 0.10.32 | ❌ 깨짐 | `mediapipe.framework` 모듈 제거됨 |
+| **0.10.33** | ❌ 깨짐 (검증됨) | 사용자 보고. `single_hand_detector.py` import 단계에서 ImportError |
+| 0.10.x latest | ⚠️ 미검증 | 사용 금지 — 위와 동일한 원인으로 깨질 가능성 큼 |
+
 **이유:**
-- dex-retargeting 예제의 `single_hand_detector.py`가 `import mediapipe.framework` 사용
-- mediapipe 0.10.22+ 에서 `mediapipe.framework` 모듈 제거됨
-- 0.10.21이 가장 최신 호환 버전
+- dex-retargeting 예제의 [`single_hand_detector.py`](../../../dex-retargeting/example/vector_retargeting/single_hand_detector.py)가 `import mediapipe.framework` 사용 (line 2) + `landmark_pb2` 등 추가 import
+- mediapipe 0.10.22 부터 내부 리팩터링으로 `mediapipe.framework` Python 모듈이 제거됨
+- 우리 코드 중 [`detect_dg5f.py`](../../detect_dg5f.py) (mp4 → DG-5F pkl) 만 이 파일에 의존. phone / realsense / manus 실시간 경로는 우리 자체 [`sensing/phone/hand_detector.py`](../../../sensing/phone/hand_detector.py) 사용 → mediapipe 버전 제약 영향 없음
+- 따라서 mp4 변환 기능을 쓰지 않으면 사실상 mediapipe 버전이 자유롭지만, **혼란 방지를 위해 0.10.21 로 통일** 권장
+
+**`pip install` 시 다른 패키지가 mediapipe latest를 끌어올 수 있음에 주의:**
+```bash
+# 안전하게 핀 + 강제 재설치
+pip install --force-reinstall --no-deps "mediapipe==0.10.21"
+
+# 설치 후 반드시 버전 확인
+python3 -c "import mediapipe; print(mediapipe.__version__)"
+# 출력: 0.10.21 이어야 함
+```
 
 ### 2-3. 설치 후 검증
 
@@ -107,7 +127,18 @@ DG-5F가 Isaac Sim에서 아래 토픽을 pub/sub하고 있어야 합니다:
 ## 4. 자주 발생하는 문제
 
 ### 문제 1: `ModuleNotFoundError: No module named 'mediapipe.framework'`
-→ mediapipe 다운그레이드: `pip install mediapipe==0.10.21`
+
+`detect_dg5f.py` 또는 `single_hand_detector.py` 실행 시 발생. mediapipe 0.10.22 이상 (특히 사용자 환경의 0.10.33 에서 검증됨) 에서 `mediapipe.framework` 모듈이 제거되어 import 단계에서 실패합니다.
+
+→ mediapipe 를 0.10.21 로 정확히 핀:
+```bash
+pip install --force-reinstall --no-deps "mediapipe==0.10.21"
+python3 -c "import mediapipe; print(mediapipe.__version__)"  # → 0.10.21
+```
+
+`pip install --upgrade mediapipe` 같은 명령으로 다시 latest 가 설치되지 않도록 주의. requirements.txt 에 핀하거나, 다른 패키지 설치 후에는 항상 mediapipe 버전을 재확인하세요.
+
+§2-2 참조 — 호환 버전 매트릭스 + `pip install` 가 mediapipe 를 의도치 않게 upgrade 하는 케이스 회피법.
 
 ### 문제 2: `_ARRAY_API not found` 또는 segfault
 → numpy 다운그레이드: `pip install "numpy<2"`
