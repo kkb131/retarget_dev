@@ -7,7 +7,7 @@ dex-retargeting 공식 예제. 환경 설정이 잘 되었는지 확인하는 �
 ### 1-1. mp4 → Allegro pkl
 
 ```bash
-cd /workspaces/tamp_ws/src/retarget_dev/dex-retargeting/example/vector_retargeting
+cd /workspaces/tamp_ws/src/retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting
 
 python3 detect_from_video.py \
   --robot-name allegro \
@@ -30,7 +30,7 @@ Isaac Sim에서 Allegro Hand가 `/joint_states` pub, `/joint_command` sub로 실
 ```bash
 cd /workspaces/tamp_ws/src
 python3 -m retarget_dev.models.dex_retarget.play_pkl \
-  --pkl-path retarget_dev/dex-retargeting/example/vector_retargeting/data/allegro_joints.pkl \
+  --pkl-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/allegro_joints.pkl \
   --topic /joint_command --hz 30
 ```
 
@@ -45,13 +45,13 @@ cd /workspaces/tamp_ws/src
 
 # 권장: DexPilot (pinch 보존 우수)
 python3 -m retarget_dev.models.dex_retarget.detect_dg5f \
-  --video-path retarget_dev/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
+  --video-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
   --config retarget_dev/models/dex_retarget/config/dg5f_right_dexpilot.yml \
   --output-path /tmp/dg5f_joints.pkl
 
 # 대안: Vector (더 빠름, 일반 동작)
 python3 -m retarget_dev.models.dex_retarget.detect_dg5f \
-  --video-path retarget_dev/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
+  --video-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
   --config retarget_dev/models/dex_retarget/config/dg5f_right_vector.yml \
   --output-path /tmp/dg5f_joints.pkl
 ```
@@ -171,7 +171,7 @@ MediaPipe world_landmarks를 **MANO 좌표계**로 변환해야 합니다.
 **이 변환 없이는** 카메라 시점에 따라 손의 절대 방향이 벡터에 그대로 들어가서,
 optimizer가 잘못된 포즈를 만들어 냅니다.
 
-참조: `retarget_dev/dex-retargeting/example/vector_retargeting/single_hand_detector.py`
+참조: `retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/single_hand_detector.py`
 의 `estimate_frame_from_hand_points()` 함수.
 
 우리 구현: `retarget_dev/sensing/phone/keypoint_converter.py` (dex-retargeting 로직 이식).

@@ -6,7 +6,7 @@ RealSense D405, etc.) can produce keypoints in the **MANO convention**
 expected by dex-retargeting's optimizers.
 
 Reference:
-    dex-retargeting/example/vector_retargeting/single_hand_detector.py
+    models/dex_retarget/dex-retargeting/example/vector_retargeting/single_hand_detector.py
     - estimate_frame_from_hand_points()
     - OPERATOR2MANO_RIGHT / OPERATOR2MANO_LEFT
 

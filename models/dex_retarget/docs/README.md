@@ -23,7 +23,7 @@ Isaac Sim DG-5F (/dg5f_right/joint_commands)
 # 2) mp4 → DG-5F pkl 생성
 cd /workspaces/tamp_ws/src
 python3 -m retarget_dev.models.dex_retarget.detect_dg5f \
-  --video-path retarget_dev/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
+  --video-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
   --config retarget_dev/models/dex_retarget/config/dg5f_right_dexpilot.yml \
   --output-path /tmp/dg5f_joints.pkl
 
@@ -53,6 +53,10 @@ retarget_dev/models/dex_retarget/
 │   ├── dg5f_right_dexpilot.yml      # DexPilot optimizer config (권장)
 │   └── dg5f_right_retarget.urdf     # PIP/DIP 음수 제한 URDF (튜닝됨)
 ├── docs/                            # ← 이 문서들
+├── dex-retargeting/                 # upstream 라이브러리 clone (gitignore됨, setup.md 참조)
+│   ├── src/dex_retargeting/         # pip install 된 라이브러리 소스
+│   ├── example/                     # SingleHandDetector, sample mp4 등
+│   └── assets/                      # robot URDF 모음 (git submodule)
 ├── dex_retarget_model.py            # RetargetingModel ABC wrapper
 ├── detect_dg5f.py                   # mp4 → DG-5F pkl
 ├── play_pkl.py                      # pkl → Isaac Sim ROS2 publish

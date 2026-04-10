@@ -548,7 +548,7 @@ OPERATOR2MANO_LEFT = np.array(
 - `[-1, 0, 0]` = 입력의 x 축이 출력의 y 축 (부호 반전)
 - `[0, 1, 0]` = 입력의 y 축이 출력의 z 축
 
-이 상수는 dex-retargeting 의 [`single_hand_detector.py:9-24`](../dex-retargeting/example/vector_retargeting/single_hand_detector.py#L9-L24)
+이 상수는 dex-retargeting 의 [`single_hand_detector.py:9-24`](../models/dex_retarget/dex-retargeting/example/vector_retargeting/single_hand_detector.py#L9-L24)
 에서 그대로 복사된 값이다. "MANO paper 가 정의한 표준 hand coordinate" 와 "우리의 wrist-aligned
 intermediate frame" 사이의 정렬을 맞추는 **고정** 변환.
 
@@ -801,7 +801,7 @@ def retarget(self, keypoints: HandKeypoints) -> np.ndarray:
 
 ### 8.1 DexPilotOptimizer.generate_link_indices — pairwise pinch 쌍 생성
 
-[`dex-retargeting/src/dex_retargeting/optimizer.py:407-428`](../dex-retargeting/src/dex_retargeting/optimizer.py#L407-L428):
+[`dex-retargeting/src/dex_retargeting/optimizer.py:407-428`](../models/dex_retarget/dex-retargeting/src/dex_retargeting/optimizer.py#L407-L428):
 
 ```python
 @staticmethod
@@ -845,7 +845,7 @@ task:   [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 1, 2, 3, 4, 5]
 ```
 
 그다음 `DexPilotOptimizer.__init__` 에서 이 인덱스에 **×4** 를 곱해서 MANO fingertip 인덱스로
-변환한다 ([`optimizer.py:357-364`](../dex-retargeting/src/dex_retargeting/optimizer.py#L357-L364)):
+변환한다 ([`optimizer.py:357-364`](../models/dex_retarget/dex-retargeting/src/dex_retargeting/optimizer.py#L357-L364)):
 
 ```python
 origin_human_indices: [8, 12, 16, 20, 12, 16, 20, 16, 20, 20, 0, 0, 0, 0, 0]
@@ -884,7 +884,7 @@ pairwise 를 뒤에) DexPilot 모드가 손이 이상한 자세에서 굳는 버
 
 ### 8.2 SeqRetargeting.retarget — warm start + NLOPT + LP filter
 
-[`dex-retargeting/src/dex_retargeting/seq_retarget.py:112-134`](../dex-retargeting/src/dex_retargeting/seq_retarget.py#L112-L134):
+[`dex-retargeting/src/dex_retargeting/seq_retarget.py:112-134`](../models/dex_retarget/dex-retargeting/src/dex_retargeting/seq_retarget.py#L112-L134):
 
 ```python
 def retarget(self, ref_value, fixed_qpos=np.array([])):
@@ -924,7 +924,7 @@ def retarget(self, ref_value, fixed_qpos=np.array([])):
 
 ### 8.3 LPFilter — 단순 EMA smoothing
 
-[`dex-retargeting/src/dex_retargeting/optimizer_utils.py:1-13`](../dex-retargeting/src/dex_retargeting/optimizer_utils.py#L1-L13) — 이 라이브러리의 가장 짧은 파일:
+[`dex-retargeting/src/dex_retargeting/optimizer_utils.py:1-13`](../models/dex_retarget/dex-retargeting/src/dex_retargeting/optimizer_utils.py#L1-L13) — 이 라이브러리의 가장 짧은 파일:
 
 ```python
 class LPFilter:
@@ -1063,7 +1063,7 @@ Manus Glove 는 카메라 기반이 아니라 글러브 IMU 로 직접 손 frame
 
 이 문서 전부 + 다음 3개를 소스에서 직접 읽기:
 
-1. [`dex-retargeting/src/dex_retargeting/optimizer.py`](../dex-retargeting/src/dex_retargeting/optimizer.py) —
+1. [`dex-retargeting/src/dex_retargeting/optimizer.py`](../models/dex_retarget/dex-retargeting/src/dex_retargeting/optimizer.py) —
    특히 `DexPilotOptimizer.__init__` (line 333–405) 와 `get_objective_function` (line 456–577). NLOPT
    로 넘어가는 cost function 의 실제 구조가 보인다.
 2. [`sensing/core/mano_transform.py`](../sensing/core/mano_transform.py) 전체 — 98줄. SVD 부분을

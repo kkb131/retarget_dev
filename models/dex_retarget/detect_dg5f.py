@@ -9,13 +9,13 @@ Usage:
 
     # mp4 → DG-5F pkl (vector retargeting)
     python3 -m retarget_dev.models.dex_retarget.detect_dg5f \
-        --video-path retarget_dev/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
+        --video-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
         --config retarget_dev/models/dex_retarget/config/dg5f_right_vector.yml \
         --output-path /tmp/dg5f_joints.pkl
 
     # mp4 → DG-5F pkl (DexPilot)
     python3 -m retarget_dev.models.dex_retarget.detect_dg5f \
-        --video-path retarget_dev/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
+        --video-path retarget_dev/models/dex_retarget/dex-retargeting/example/vector_retargeting/data/human_hand_video.mp4 \
         --config retarget_dev/models/dex_retarget/config/dg5f_right_dexpilot.yml \
         --output-path /tmp/dg5f_dexpilot.pkl
 """
@@ -31,9 +31,10 @@ import tqdm
 
 from dex_retargeting.retargeting_config import RetargetingConfig
 
-# Add dex-retargeting example dir to path for SingleHandDetector
+# Add dex-retargeting example dir to path for SingleHandDetector.
+# dex-retargeting lives at models/dex_retarget/dex-retargeting/ (sibling of this file).
 _EXAMPLE_DIR = str(
-    Path(__file__).resolve().parent.parent.parent
+    Path(__file__).resolve().parent
     / "dex-retargeting" / "example" / "vector_retargeting"
 )
 sys.path.insert(0, _EXAMPLE_DIR)

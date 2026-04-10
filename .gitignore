@@ -16,7 +16,7 @@ __pycache__/
 *.webm
 
 # dex-retargeting repo (clone separately via git submodule or manual clone)
-dex-retargeting/
+models/dex_retarget/dex-retargeting/
 
 # Large model files
 # sensing/core/models/*.task
