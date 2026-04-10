@@ -13,7 +13,7 @@
 
 ```bash
 cd /workspaces/tamp_ws/src/retarget_dev/models/geort
-conda activate geort_env   # docs/setup.md §1
+conda activate teleop_operator   # docs/setup.md §1 — 기존 env 재사용
 ```
 
 ---

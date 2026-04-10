@@ -28,7 +28,7 @@ import sys
 import cv2
 import numpy as np
 
-# GeoRT import — environment.yaml 로 설치된 geort_env 에서 동작.
+# GeoRT import — install.sh 가 teleop_operator (또는 활성 conda env) 에 설치.
 import geort
 from geort.mocap.camera.webcam import WebcamCamera
 from geort.mocap.mediapipe_mocap import MediaPipeHandDetector
