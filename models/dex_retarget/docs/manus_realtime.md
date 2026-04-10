@@ -155,10 +155,10 @@ python3 -m retarget_dev.models.dex_retarget.main \
 |---|---|---|---|
 | 2D 검출 | MediaPipe | MediaPipe | **불필요** (직접 3D) |
 | 3D 복원 | MediaPipe `world_landmarks` | `rs2_deproject_pixel_to_point` + depth | **글러브 IMU 직접** |
-| 좌표계 변환 | MANO transform 필수 | MANO transform 필수 | **불필요** (Manus가 이미 손 기준 좌표 출력) |
+| 좌표계 변환 | MANO transform 필수 | MANO transform 필수 | **MANO transform 필수** ([수정 이력](manus_debug.md#33-suspect-1--manus-가-mano-frame-회전을-건너뜀-검증-confirmed-)) |
 | 노드 개수 정렬 | 21 (MediaPipe 기본) | 21 (MediaPipe 기본) | **25 → 21 리매핑 필수** ⚠️ |
 
-→ Manus는 카메라 기반 대비 2D detection / depth 추정 / MANO 회전 단계가 모두 빠지지만, **대신 25→21 노드 리매핑이라는 고유 문제가 있습니다** (§5).
+→ Manus는 카메라 기반 대비 2D detection / depth 추정 단계가 빠지지만, **MANO 좌표계 변환은 phone/realsense 와 마찬가지로 필수입니다**. SDK 가 raw skeleton 을 world frame (`AxisView_XFromViewer`, `AxisPolarity_PositiveZ`, `Side_Right`) 로 publish 하므로 글러브 자세에 따라 회전이 달라지며, 회전 보정 없이 dex-retargeting 에 넘기면 손가락 굽힘 방향이 거꾸로 매핑됩니다 (이전 fist→spread 버그). 자세한 분석은 [`manus_debug.md`](manus_debug.md) 참조. 이 외에도 **25→21 노드 리매핑 이라는 고유 문제가 있습니다** (§5).
 
 ## 5. ⚠️ 핵심 이슈: 25 → 21 MANO 리매핑
 

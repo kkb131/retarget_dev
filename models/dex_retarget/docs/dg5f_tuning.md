@@ -3,6 +3,10 @@
 dex-retargeting을 DG-5F에 적용하면서 발견한 문제들과 해결 방법.
 실험으로 검증된 내용만 기록합니다.
 
+> **관련**: Manus 글러브 경로에서 발견된 fist→spread inversion 버그 (frame 누락 +
+> MANO indices off-by-one 두 가지 동시) 는 별도 문서 [`manus_debug.md`](manus_debug.md)
+> 에서 다룹니다.
+
 ## 초기 문제
 
 DG-5F 기본 config(vector + scaling_factor=1.0)로 mp4를 재생하면:

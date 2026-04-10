@@ -43,6 +43,7 @@ python3 -m retarget_dev.models.dex_retarget.play_pkl \
 | [phone_realtime.md](phone_realtime.md) | Phone (IP Webcam) → 실시간 DG-5F, MANO 변환 파이프라인 |
 | [realsense_d405.md](realsense_d405.md) | RealSense D405 → 실시간 DG-5F, real depth 기반 정밀 제어 |
 | [manus_realtime.md](manus_realtime.md) | Manus Glove → 실시간 DG-5F, 25→21 raw skeleton 리매핑 이슈 포함 |
+| [manus_debug.md](manus_debug.md) | Manus → DG-5F fist→spread inversion 디버그 기록 (frame 누락 + indices off-by-one) |
 
 ## 파일 구조
 

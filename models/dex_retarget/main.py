@@ -14,6 +14,12 @@ Usage:
     python3 -m retarget_dev.models.dex_retarget.main \
         --sensing manus-ros2 --config retarget_dev/models/dex_retarget/config/dg5f_right_vector.yml
 
+    # Manus egocentric dataset replay (offline) → DG-5F
+    python3 -m retarget_dev.models.dex_retarget.main \
+        --sensing manus-egocentric \
+        --offline-source /workspaces/tamp_ws/src/manus-egocentric-sample/data/manus-egocentric-sample/data/chunk-000/episode_000000.parquet \
+        --config retarget_dev/models/dex_retarget/config/dg5f_right_vector.yml
+
     # Console only (no ROS2)
     python3 -m retarget_dev.models.dex_retarget.main \
         --sensing manus-mock --config retarget_dev/models/dex_retarget/config/dg5f_right_vector.yml --no-ros2
@@ -43,12 +49,24 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--sensing", required=True,
-        choices=["manus-mock", "manus-ros2", "manus-sdk", "phone", "realsense"],
+        choices=["manus-mock", "manus-ros2", "manus-sdk", "manus-egocentric",
+                 "phone", "realsense"],
         help="Sensing source.",
     )
     p.add_argument(
         "--rs-serial", default=None,
         help="RealSense camera serial number (for --sensing realsense).",
+    )
+    p.add_argument(
+        "--offline-source", default=None,
+        help=(
+            "Path to a manus-egocentric-sample episode_NNNNNN.parquet file "
+            "(required for --sensing manus-egocentric)."
+        ),
+    )
+    p.add_argument(
+        "--offline-loop", action="store_true",
+        help="Loop the offline episode forever (default: stop at end).",
     )
     p.add_argument(
         "--config", required=True,
@@ -82,6 +100,22 @@ def create_sensing(args):
         from retarget_dev.sensing.manus.sdk_provider import SdkManusProvider
         from retarget_dev.sensing.manus.manus_sensing import ManusSensing
         return ManusSensing(SdkManusProvider(args.sdk_bin, args.hand), args.hand)
+
+    elif args.sensing == "manus-egocentric":
+        if not args.offline_source:
+            raise ValueError(
+                "--sensing manus-egocentric requires --offline-source "
+                "<path to episode_NNNNNN.parquet>"
+            )
+        from retarget_dev.sensing.manus.offline_egocentric_provider import (
+            OfflineEgocentricProvider,
+        )
+        return OfflineEgocentricProvider(
+            parquet_path=args.offline_source,
+            hand=args.hand,
+            loop=args.offline_loop,
+            fps=args.hz,
+        )
 
     elif args.sensing == "phone":
         from retarget_dev.sensing.phone.phone_sensing import PhoneSensing

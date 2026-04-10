@@ -29,9 +29,20 @@ retargeting:
     - "rl_dg_4_4"   # Ring DIP link
     - "rl_dg_5_4"   # Pinky DIP link
 
+  # MANO 21 indices.
+  # Batch 1 (vectors 1..5):  palm → fingertip   (wrist=0    → tips 4,8,12,16,20)
+  # Batch 2 (vectors 6..10): MCP  → DIP         (matches DG-5F links rl_dg_X_2 → rl_dg_X_4)
+  #
+  # MANO non-thumb MCPs are 5,9,13,17 (not 6,10,14,18 — those are PIPs).
+  # MANO non-thumb DIPs are 7,11,15,19. Thumb is special (CMC=1, MCP=2, IP=3, TIP=4)
+  # so its second-batch entry is MCP(2) → IP(3), preserving the prior mapping.
+  # See docs/manus_debug.md §3.4 for the URDF link-position trace.
   target_link_human_indices:
-    - [0, 0, 0, 0, 0, 2, 6, 10, 14, 18]   # origins: wrist x5, then MCP x5
-    - [4, 8, 12, 16, 20, 3, 7, 11, 15, 19] # tasks: tip x5, then PIP x5
+    - [0, 0, 0, 0, 0, 2, 5,  9, 13, 17]   # origins: wrist x5, then MCP x5
+    - [4, 8, 12, 16, 20, 3, 7, 11, 15, 19] # tasks: tip x5, then DIP x5
+  # target_link_human_indices:
+  #   - [0, 0, 0, 0, 0, 2, 6, 10, 14, 18]   # origins: wrist x5, then MCP x5
+  #   - [4, 8, 12, 16, 20, 3, 7, 11, 15, 19] # tasks: tip x5, then PIP x5
 
   # target_link_human_indices:
   #   - [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

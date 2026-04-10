@@ -1,9 +1,15 @@
 """Manus glove hand sensing pipeline.
 
 Reads HandData from a provider (MockManusProvider or SdkManusProvider)
-and converts skeleton positions to HandKeypoints (21, 3).
+and converts skeleton positions to HandKeypoints (21, 3) in MANO frame.
 
 No MediaPipe needed — the glove provides 3D keypoints directly.
+
+The Manus SDK publishes raw skeleton positions in WORLD coordinates
+(VUH = X-into-scene, Z-up, right-handed; see ManusDataPublisher.hpp).
+After wrist shift the rotation is still world-aligned, so the same
+SVD-based palm-plane fit used by phone/realsense is applied to land in
+the MANO frame expected by dex-retargeting. See docs/manus_debug.md §3.3.
 
 Usage:
     provider = MockManusProvider(hand_side="right")
@@ -21,6 +27,7 @@ from typing import Optional
 import numpy as np
 
 from retarget_dev.sensing.common import HandKeypoints, SensingSource
+from retarget_dev.sensing.core.mano_transform import apply_mano_transform
 from retarget_dev.sensing.manus.config import WRIST_IDX
 from retarget_dev.sensing.manus.manus_hand_data import HandData
 
@@ -77,8 +84,18 @@ class ManusSensing(SensingSource):
         # Extract xyz positions from skeleton (21, 7) → (21, 3)
         positions = data.skeleton[:, :3].astype(np.float32)
 
-        # Shift to wrist origin
+        # Shift to wrist origin (still in SDK world frame after this).
         keypoints_3d = positions - positions[WRIST_IDX]
+
+        # Rotate to MANO frame. Manus SDK publishes raw skeleton in world
+        # coordinates (see module docstring), so without this step the
+        # finger curl direction depends on glove orientation in space and
+        # dex-retargeting sees a wrong axis (the historical fist→spread
+        # inversion bug). apply_mano_transform reuses the SVD palm-plane
+        # fit shared with phone/realsense.
+        keypoints_3d = apply_mano_transform(
+            keypoints_3d, hand_type=self._hand_side,
+        )
 
         return HandKeypoints(
             keypoints_3d=keypoints_3d,
