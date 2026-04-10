@@ -1,0 +1,10 @@
+# Vendored upstream — install.sh로 받음, git 추적 안 함
+GeoRT/
+
+# Mocap 데이터 / 학습 산출물
+data/*.npy
+checkpoint/*
+
+# .gitkeep 만 추적
+!data/.gitkeep
+!checkpoint/.gitkeep

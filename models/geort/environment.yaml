@@ -1,0 +1,26 @@
+name: geort_env
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.10
+  - pip
+  - "numpy<2"               # GeoRT 학습 안정성 (eigenpy/pinocchio ABI 호환)
+  - pip:
+    # PyTorch (CPU 기본 — CUDA가 필요하면 install.sh 후 직접 override:
+    #   pip install torch --index-url https://download.pytorch.org/whl/cu121
+    - torch
+    - torchvision
+    # FK ground-truth + (옵션) viewer
+    - sapien
+    # Pinocchio 대안 FK 백엔드 (Vulkan 실패 시)
+    - pin
+    # MediaPipe — dex_retarget setup.md 호환 매트릭스와 동일하게 0.10.21 핀
+    - "mediapipe==0.10.21"
+    - opencv-python
+    - pyyaml
+    - tqdm
+    - tyro
+    - loguru
+    # GeoRT 본체는 scripts/install.sh 에서 별도 `pip install -e .` 로 설치
